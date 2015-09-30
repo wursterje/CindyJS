@@ -42,43 +42,6 @@ function csinit(gslp) {
     //isshowing     das wird durch den Konstruktionsbaum vererbt
     //movable
 
-
-    // Setzen der Default appearance
-
-    function pointDefault(el) {
-
-        if (el.size === undefined) el.size = defaultAppearance.pointSize;
-        el.size = CSNumber.real(el.size);
-        if (el.type !== "Free") {
-            el.color = List.realVector(el.color || defaultAppearance.pointColor);
-            el.color = List.scalmult(CSNumber.real(defaultAppearance.dimDependent), el.color);
-        } else {
-            el.color = List.realVector(el.color || defaultAppearance.pointColor);
-        }
-        if (el.alpha === undefined) el.alpha = defaultAppearance.alpha;
-        el.alpha = CSNumber.real(el.alpha);
-    }
-
-    function lineDefault(el) {
-        if (el.size === undefined) el.size = defaultAppearance.lineSize;
-        el.size = CSNumber.real(el.size);
-        el.color = List.realVector(el.color || defaultAppearance.lineColor);
-        if (el.alpha === undefined) el.alpha = defaultAppearance.alpha;
-        el.alpha = CSNumber.real(el.alpha);
-        el.clip = General.string(el.clip || defaultAppearance.clip);
-        if (el.overhang === undefined)
-            el.overhang = defaultAppearance.overhangLine;
-        el.overhang = CSNumber.real(el.overhang);
-    }
-
-    function segmentDefault(el) {
-        lineDefault(el);
-        el.clip = General.string("end");
-        if (el.overhang === undefined)
-            el.overhang = defaultAppearance.overhangSeg;
-        el.overhang = CSNumber.real(el.overhang);
-    }
-
     csgeo.gslp = gslp;
 
     csgeo.csnames = {}; //Lookup für elemente mit über Namen
@@ -170,6 +133,107 @@ function csinit(gslp) {
     stateContinueFromHere();
     tracingInitial = false;
     guessIncidences();
+}
+
+// Setzen der Default appearance
+
+function pointDefault(el) {
+
+    if (el.size === undefined) el.size = defaultAppearance.pointSize;
+    el.size = CSNumber.real(el.size);
+    if (el.type !== "Free") {
+        el.color = List.realVector(el.color || defaultAppearance.pointColor);
+        el.color = List.scalmult(CSNumber.real(defaultAppearance.dimDependent), el.color);
+    } else {
+        el.color = List.realVector(el.color || defaultAppearance.pointColor);
+    }
+    if (el.alpha === undefined) el.alpha = defaultAppearance.alpha;
+    el.alpha = CSNumber.real(el.alpha);
+}
+
+function lineDefault(el) {
+    if (el.size === undefined) el.size = defaultAppearance.lineSize;
+    el.size = CSNumber.real(el.size);
+    el.color = List.realVector(el.color || defaultAppearance.lineColor);
+    if (el.alpha === undefined) el.alpha = defaultAppearance.alpha;
+    el.alpha = CSNumber.real(el.alpha);
+    el.clip = General.string(el.clip || defaultAppearance.clip);
+    if (el.overhang === undefined)
+        el.overhang = defaultAppearance.overhangLine;
+    el.overhang = CSNumber.real(el.overhang);
+}
+
+function segmentDefault(el) {
+    lineDefault(el);
+    el.clip = General.string("end");
+    if (el.overhang === undefined)
+        el.overhang = defaultAppearance.overhangSeg;
+    el.overhang = CSNumber.real(el.overhang);
+}
+
+// TODO: Use this in csinit to avoid code duplication
+function addElement(el) {
+    var totalStateSize = stateLastGood.length;
+
+    csgeo.gslp.push(el);
+    csgeo.csnames[el.name] = el;
+    var op = geoOps[el.type];
+    el.kind = op.kind;
+    el.stateIdx = totalStateSize;
+    totalStateSize += op.stateSize;
+    el.incidences = [];
+    el.isshowing = true;
+    el.movable = false;
+
+    if (op.isMovable) {
+        el.movable = true;
+        csgeo.free.push(el);
+    }
+
+    if (el.kind === "P") {
+        csgeo.points.push(el);
+        pointDefault(el);
+    }
+    if (el.kind === "L") {
+        csgeo.lines.push(el);
+        lineDefault(el);
+    }
+    if (el.kind === "C") {
+        csgeo.conics.push(el);
+        lineDefault(el);
+    }
+    if (el.kind === "S") {
+        csgeo.lines.push(el);
+        segmentDefault(el);
+    }
+
+    if (true || op.stateSize !== 0) {
+        var prevState = stateLastGood;
+        stateLastGood = stateIn = stateOut = new Float64Array(totalStateSize);
+        stateLastGood.set(prevState); // make new state a copy of old state
+        // initially, stateIn and stateOut are the same, so that initialize can
+        // write some state and updatePosition can immediately use it
+        if (op.initialize) {
+            tracingInitial = true;
+            stateInIdx = stateOutIdx = el.stateIdx;
+            el.param = op.initialize(el);
+            assert(stateOutIdx === el.stateIdx + op.stateSize, "State fully initialized");
+            tracingInitial = false;
+        }
+        stateInIdx = stateOutIdx = el.stateIdx;
+        op.updatePosition(el, false);
+        assert(stateInIdx === el.stateIdx + op.stateSize, "State fully consumed");
+        assert(stateOutIdx === el.stateIdx + op.stateSize, "State fully updated");
+        stateLastGood = new Float64Array(totalStateSize);
+        stateOut = new Float64Array(totalStateSize);
+    } else {
+        // Do the updatePosition call with correct state handling around it.
+    }
+    stateContinueFromHere();
+    isShowing(el, op);
+
+    geoDependantsCache = {};
+    //guessIncidences();
 }
 
 function onSegment(p, s) { //TODO was ist mit Fernpunkten
