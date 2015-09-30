@@ -11,7 +11,7 @@ function getmover(mouse) {
     var diff;
     for (var i = 0; i < csgeo.free.length; i++) {
         var el = csgeo.free[i];
-        if (el.pinned || el.visible === false)
+        if (el.pinned || el.visible === false || el.tmp === true)
             continue;
 
         var dx, dy, dist;
@@ -148,7 +148,8 @@ function setuplisteners(canvas, data) {
         mouse.button = e.which;
         updatePostition(e);
         cs_mousedown();
-        move = getmover(mouse);
+        manage("mousedown");
+
         startit(); //starts d3-timer
 
         mouse.down = true;
@@ -160,11 +161,14 @@ function setuplisteners(canvas, data) {
         cindy_cancelmove();
         stateContinueFromHere();
         cs_mouseup();
+        manage("mouseup");
         updateCindy();
         e.preventDefault();
     });
 
     addAutoCleaningEventListener(canvas, "mousemove", function(e) {
+        manage("mousemove");
+
         updatePostition(e);
         if (mouse.down) {
             cs_mousedrag();
@@ -176,6 +180,8 @@ function setuplisteners(canvas, data) {
 
 
     function touchMove(e) {
+        manage("mousemove");
+
         updatePostition(e.targetTouches[0]);
         if (mouse.down) {
             cs_mousedrag();
@@ -186,6 +192,8 @@ function setuplisteners(canvas, data) {
     }
 
     function touchDown(e) {
+        manage("mousedown");
+
         updatePostition(e.targetTouches[0]);
         cs_mousedown();
         mouse.down = true;
@@ -195,6 +203,8 @@ function setuplisteners(canvas, data) {
     }
 
     function touchUp(e) {
+        manage("mouseup");
+
         mouse.down = false;
         cindy_cancelmove();
         stateContinueFromHere();

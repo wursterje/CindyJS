@@ -3476,7 +3476,7 @@ evaluator.convexhull3d$1 = function(args, modifs) {
         var ergf = [];
         for (i = 0; i < chf.length; i++) {
             for (j = 0; j < chf[i].length; j++) {
-                chf[i][j]++;
+                chf[i][j] ++;
             }
             ergf.push(List.realVector(chf[i]));
         }
@@ -4030,3 +4030,30 @@ evaluator.setsimulationquality$1 = function(args, modifs) {
     }
     return nada;
 };
+
+var activeButton;
+
+evaluator.createtool$1 = function(args, modifis) {
+    var name = evaluate(args[0]);
+
+    if (name.ctype !== "string") {
+        console.log("Name must be a string");
+    }
+
+    // TODO Check if tool exists
+
+    var toolbar = document.getElementById("toolbar");
+    var button = document.createElement("button");
+    button.innerHTML = "<img src='" + name.value + ".png'>";
+    button.onclick = function() {
+        if (typeof activeButton !== "undefined") {
+            activeButton.style.border = "";
+        }
+
+        activeButton = this;
+        activeButton.style.border = "1px solid black";
+        setActiveTool(name.value);
+    };
+
+    toolbar.appendChild(button);
+}
