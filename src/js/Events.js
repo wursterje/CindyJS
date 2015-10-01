@@ -167,49 +167,47 @@ function setuplisteners(canvas, data) {
     });
 
     addAutoCleaningEventListener(canvas, "mousemove", function(e) {
-        manage("mousemove");
-
         updatePostition(e);
         if (mouse.down) {
             cs_mousedrag();
         } else {
             cs_mousemove();
         }
+        manage("mousemove");
         e.preventDefault();
     });
 
 
     function touchMove(e) {
-        manage("mousemove");
-
         updatePostition(e.targetTouches[0]);
         if (mouse.down) {
             cs_mousedrag();
         } else {
             cs_mousemove();
         }
+
+        manage("mousemove");
+
         e.preventDefault();
     }
 
     function touchDown(e) {
-        manage("mousedown");
-
         updatePostition(e.targetTouches[0]);
         cs_mousedown();
         mouse.down = true;
-        move = getmover(mouse);
+        //move = getmover(mouse);
         startit();
+        manage("mousedown");
         e.preventDefault();
     }
 
     function touchUp(e) {
-        manage("mouseup");
-
         mouse.down = false;
         cindy_cancelmove();
         stateContinueFromHere();
         updateCindy();
         cs_mouseup();
+        manage("mouseup");
         e.preventDefault();
     }
 
